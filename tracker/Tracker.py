@@ -29,9 +29,15 @@ class Tracker:
 
         tamanhoArquivo = os.path.getsize(arquivoPath)
         self.totalBlocos = math.ceil(tamanhoArquivo / BLOCO_TAMANHO)
+
         print(f"[TRACKER] Arquivo: {arquivoPath} ({tamanhoArquivo} bytes)")
         print(f"[TRACKER] Bloco: {BLOCO_TAMANHO} bytes")
         print(f"[TRACKER] Total de blocos calculado: {self.totalBlocos}")
+
+        # Salva a extensão do arquivo original
+        extensao = os.path.splitext(arquivoPath)[1]
+        with open("extensao.txt", "w") as f:
+            f.write(extensao)
 
     def start(self):
         print(f"[TRACKER] Iniciando servidor em {self.host}:{self.port}")

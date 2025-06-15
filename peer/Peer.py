@@ -21,6 +21,7 @@ class Peer:
         self.listaPeers = []
         self.blocos = set()
         self.totalBlocos = None
+        self.extensaoArquivo = ".bin"
         self.lock = threading.Lock()
         self.rarest = RarestFirst()
         self.titForTat = TitForTatManager()
@@ -30,8 +31,17 @@ class Peer:
         if not os.path.exists(self.pastaBlocos):
             os.makedirs(self.pastaBlocos)
 
+        self.lerExtensaoOriginal()
         self.fileManager = FileManager(None, self.pastaBlocos)
         self.titForTat.configurarRarest(self.rarest)
+
+    def lerExtensaoOriginal(self):
+        try:
+            with open("extensao.txt", "r") as f:
+                self.extensaoArquivo = f.read().strip()
+                print(f"[{self.id}] Extensão original detectada: {self.extensaoArquivo}")
+        except Exception:
+            print(f"[{self.id}] Nenhuma extensão encontrada, usando .bin")
 
     def start(self):
         print(f"[{self.id}] Iniciando peer em {self.ip}:{self.port}")
@@ -53,7 +63,8 @@ class Peer:
             contador += 1
 
         print(f"[{self.id}] Arquivo completo! Todos os blocos foram recebidos.")
-        self.fileManager.mergeBlocks(f"arquivo_final_peer_{self.id}.pdf")
+        nomeFinal = f"arquivo_final_peer_{self.id}{self.extensaoArquivo}"
+        self.fileManager.mergeBlocks(nomeFinal)
 
     def registrarNoTracker(self):
         meuPeer = PeerInfo(self.id, self.ip, self.port, [])
@@ -154,7 +165,7 @@ class Peer:
 
                 print(f"[{self.id}] Pedido de bloco {blocoSolicitado} de {peerIdRemoto}")
 
-                if self.id != "tracker" and not self.titForTat.estaDesbloqueado(peerIdRemoto):
+                if not self.possuiTodosBlocos() and self.id != "tracker" and not self.titForTat.estaDesbloqueado(peerIdRemoto):
                     print(f"[{self.id}] Peer {peerIdRemoto} bloqueado (Tit-for-Tat)")
                     return
 
@@ -191,18 +202,20 @@ class Peer:
             if not blocosFaltando:
                 continue
 
-            bloco = random.choice(blocosFaltando)
+            blocoMaisRaro = self.rarest.escolherBlocoRaro(self.blocos)
+            if blocoMaisRaro not in blocosPeer or blocoMaisRaro in self.blocos:
+                blocoMaisRaro = random.choice(blocosFaltando)
 
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.settimeout(5)
                     s.connect((peer["ip"], peer["port"]))
-                    pedido = {"bloco": bloco, "peerId": self.id}
+                    pedido = {"bloco": blocoMaisRaro, "peerId": self.id}
                     s.sendall(json.dumps(pedido).encode())
 
                     resposta = self.receber_tudo(s)
                     if not resposta:
-                        print(f"[{self.id}] Nenhuma resposta recebida de {peer['id']} ao solicitar bloco {bloco}")
+                        print(f"[{self.id}] Nenhuma resposta recebida de {peer['id']} ao solicitar bloco {blocoMaisRaro}")
                         continue
 
                     try:
@@ -215,10 +228,10 @@ class Peer:
                         print(f"[{self.id}] Recebeu bloco {blocoObj.getId()} de {peer['id']} ({len(blocoObj.getData())} bytes)")
                         break
                     except Exception as e:
-                        print(f"[{self.id}] Erro ao processar resposta de {peer['id']} para bloco {bloco}: {e}")
+                        print(f"[{self.id}] Erro ao processar resposta de {peer['id']} para bloco {blocoMaisRaro}: {e}")
                         continue
             except Exception as e:
-                print(f"[{self.id}] Erro ao trocar bloco {bloco} com {peer['id']}: {e}")
+                print(f"[{self.id}] Erro ao trocar bloco {blocoMaisRaro} com {peer['id']}: {e}")
                 continue
 
     def salvarBloco(self, bloco: Block, remetente=None):

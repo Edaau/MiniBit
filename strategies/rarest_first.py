@@ -1,5 +1,5 @@
 class RarestFirst:
-    def init(self):
+    def __init__(self):
         self.peerBlocks = {}  # blocos de cada peer
 
     def updatePeerBlocks(self, peerId, blocos):
