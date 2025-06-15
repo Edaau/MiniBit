@@ -1,24 +1,32 @@
 class RarestFirst:
-    def __init__(self):
-        self.peerBlocks = {} # blocos de cada peer
+    def init(self):
+        self.peerBlocks = {}  # blocos de cada peer
 
-    def updatePeerBlocks(self, peerId, blocos): 
-        self.peerBlocks[peerId] =blocos
+    def updatePeerBlocks(self, peerId, blocos):
+        self.peerBlocks[peerId] = blocos
 
-    def escolherBlocoRaro(self, blocosQueTenho): 
-        contador = {} # vai ser utilizado p/ contar a ocorrência de cada bloco disponível pra ver qual é o mais raro
-        if not self.peerBlocks: 
+    def escolherBlocoRaro(self, blocosQueTenho):
+        contador = {}     # vai ser utilizado p/ contar a ocorrência de cada bloco disponível pra ver qual é o mais raro
+        if not self.peerBlocks:
             return None
 
-        for peer_id, blocos_do_peer in self.peerBlocks.items():
-            for bloco_id in blocos_do_peer:
-                if bloco_id not in blocosQueTenho : # Considera apenas blocos que eu não tenho
-                    if bloco_id not in contador:
-                        contador[bloco_id] = 0
-                    contador[bloco_id] += 1
-        
+        for blocos in self.peerBlocks.values():
+            for bloco in blocos:
+                if bloco not in blocosQueTenho:
+                    contador[bloco] = contador.get(bloco, 0) + 1
 
         if not contador: # Caso nenhum bloco novo seja encontrado nos peers
-            return None  
-        blocoMaisRaroId = min(contador, key=contador.get)     # id do bloco com a menor contagem (mais raro)
+            return None
+
+        blocoMaisRaroId = min(contador, key=contador.get)        # id do bloco com a menor contagem (mais raro)
         return blocoMaisRaroId
+
+    def contarBlocosRaros(self, blocosQueTenho, blocosPeer):
+        contador = {}
+        for blocos in self.peerBlocks.values():
+            for bloco in blocos:
+                if bloco not in blocosQueTenho:                 # Considera apenas blocos que eu não tenho
+                    contador[bloco] = contador.get(bloco, 0) + 1
+
+        score = sum(1 for b in blocosPeer if b in contador)
+        return score
