@@ -1,5 +1,3 @@
-stop_all.cmd:
-stop_all.cmd:
 
 @echo off
 echo Encerrando peers e tracker...

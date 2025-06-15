@@ -1,4 +1,3 @@
-start_tracker.cmd:
 
 @echo off
 echo Iniciando Tracker + Seeder...
