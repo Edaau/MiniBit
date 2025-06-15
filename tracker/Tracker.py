@@ -6,10 +6,12 @@ import sys
 import os
 import math
 from tracker.PeerInfo import PeerInfo
+from peer.Peer import Peer  
+from file.file_manager import FileManager  
 
-BLOCO_TAMANHO = 64 * 1024  # 64 KB
-BLOCOS_POR_PEER = 4        # Blocos aleatorios que cada peer recebe
-
+BLOCO_TAMANHO = 256 * 1024  # 256 KB
+BLOCOS_POR_PEER = 4         # Blocos aleatorios que cada peer recebe
+PASTA_BLOCOS_ORIGINAIS = "blocos_originais"
 
 class Tracker:
     def __init__(self, host, port, arquivoPath):
@@ -17,6 +19,9 @@ class Tracker:
         self.port = port
         self.peers = []
         self.lock = threading.Lock()
+
+        # Divide o arquivo original em blocos reais
+        FileManager(arquivoPath, PASTA_BLOCOS_ORIGINAIS).splitFile()
 
         # Calcula numero total de blocos baseado no arquivo
         if not os.path.exists(arquivoPath):
@@ -63,27 +68,24 @@ class Tracker:
                     print(f"[TRACKER] Erro ao decodificar JSON: {e}")
                     return
 
-                # Sorteia blocos para esse peer
-                blocosAleatorios = random.sample(
-                    range(self.totalBlocos),
-                    min(BLOCOS_POR_PEER, self.totalBlocos)
-                )
+                # Se for o tracker se registrando como peer, vira seeder
+                if peerDict.get("id") == "tracker":
+                    blocosAleatorios = list(range(self.totalBlocos))
+                    print(f"[TRACKER] Atuando como peer seeder com todos os blocos.")
+                else:
+                    blocosAleatorios = random.sample(
+                        range(self.totalBlocos),
+                        min(BLOCOS_POR_PEER, self.totalBlocos)
+                    )
+
                 peerDict["blocks"] = blocosAleatorios
                 peer = PeerInfo.setDict(peerDict)
 
                 with self.lock:
                     self.registrarOuAtualizarPeer(peer)
-                    peersParaEnviar = [
-                        p.getDict() for p in self.peers if p.id != peer.id
-                    ]
-
-                if len(peersParaEnviar) <= 5:
-                    resposta = peersParaEnviar
-                else:
-                    resposta = random.sample(peersParaEnviar, 4)
+                    resposta = [p.getDict() for p in self.peers] 
 
                 conn.sendall(json.dumps(resposta).encode())
-
                 print(f"[TRACKER] Peer {peer.id} registrado com blocos: {blocosAleatorios}")
         except Exception as e:
             print(f"[TRACKER] Erro ao lidar com peer: {e}")
@@ -97,8 +99,7 @@ class Tracker:
         self.peers.append(novoPeer)
         print(f"[TRACKER] Peer {novoPeer.id} adicionado.")
 
-
-# Execucao: python tracker.py <IP> <PORTA> <CAMINHO_ARQUIVO>
+# Execucao: python Tracker.py <IP> <PORTA> <CAMINHO_ARQUIVO>
 if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Uso: python tracker.py <IP> <PORTA> <CAMINHO_ARQUIVO>")
@@ -114,7 +115,15 @@ if __name__ == "__main__":
     caminhoArquivo = sys.argv[3]
 
     try:
+        # Inicia o Tracker
         tracker = Tracker(ip, porta, caminhoArquivo)
-        tracker.start()
+        trackerThread = threading.Thread(target=tracker.start, daemon=True)
+        trackerThread.start()
+
+        # Inicia o Peer Seeder no mesmo processo
+        print("[TRACKER] Iniciando peer local com ID 'tracker' como seeder...")
+        peerSeeder = Peer("tracker", ip, 9001, ip, porta)
+        peerSeeder.start()
+
     except Exception as e:
         print(f"[ERRO] {e}")
