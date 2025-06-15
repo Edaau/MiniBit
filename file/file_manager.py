@@ -111,4 +111,4 @@ class FileManager:
                 data = f.read()
             return Block(blocoId, data)
         except Exception as e:
-            raise Exception(f"Erro ao ler bloco original {blocoId}: {e}")
+            raise Exception(f"Erro ao ler bloco original {blocoId}: {e}")
