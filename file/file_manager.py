@@ -14,7 +14,7 @@ logging.basicConfig(
 )
 
 class FileManager:
-    def _init_(self, inputFilePath=None, outputDir="blocos_recebidos"):
+    def __init__(self, inputFilePath=None, outputDir="blocos_recebidos"):
         self.inputFilePath = inputFilePath
         self.outputDir = outputDir
         self.blockSize = BLOCO_TAMANHO
