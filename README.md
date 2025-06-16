@@ -99,3 +99,7 @@ A extensão do arquivo original é salva em `extensao.txt` para que os peers pos
 - Correção da lógica do Tit-for-Tat para respeitar os limites do top 4 e do peer otimista.
 - Garantir que peers continuem atuando como seeder após completar o download.
 - A necessidade de reconectar ao tracker periodicamente para atualização da lista de peers.
+
+## Demonstração
+
+Vídeo demonstrando a execução do sistema aqui [https://www.youtube.com/watch?v=AxXIXxDfKwY](https://www.youtube.com/watch?v=AxXIXxDfKwY)
